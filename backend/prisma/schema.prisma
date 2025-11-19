@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  email    String  @unique
+  senha    String
+  role     String  // "usuario" ou "admin"
+}
+
+model Ocorrencia {
+  id        Int     @id @default(autoincrement())
+  local     String
+  tipo      String
+  descricao String?
+  urgencia  String
+  criadoPor Int      // só guarda o id do usuário que criou
+}
+
+model Voluntario {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  telefone String
+  area     String
+}
