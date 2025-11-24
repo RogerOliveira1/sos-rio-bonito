@@ -5,8 +5,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const PORT = 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173", //cria porta do vite
+}));
 app.use(express.json());
 
 const SECRET = "sosriobonito-secret-key";
@@ -45,7 +48,10 @@ app.post("/register", async (req, res) => {
     });
     res.json(user);
   } catch (err) {
-    res.status(400).json({ error: "Email já cadastrado" });
+    console.error("ERRO AO CRIAR USUÁRIO:", err); // <-- loga no terminal
+    return res
+      .status(400)
+      .json({ error: err.message || "Erro ao criar usuário" });
   }
 });
 
@@ -57,7 +63,7 @@ app.post("/login", async (req, res) => {
   if (!user) return res.status(400).json({ error: "Usuário não existe" });
 
   const match = await bcrypt.compare(senha, user.senha);
-  if (!match) return res.status(400).json({ error: "Senha incorreta" });
+  if (!match) return res.status(400).json({ error: "Usuário/Senha incorretos!" });
 
   const token = jwt.sign(
     { id: user.id, nome: user.nome, role: user.role },
