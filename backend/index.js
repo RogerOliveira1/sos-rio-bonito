@@ -50,16 +50,30 @@ app.post("/register", async (req, res) => {
     return res.status(400).json({ error: "Email inválido" });
   }
 
-  if (!senha || typeof senha !== "string" || senha.length < 4) {
-    return res
-      .status(400)
-      .json({ error: "Senha deve ter pelo menos 4 caracteres" });
-  }
+  if (!senha || typeof senha !== "string") {
+  return res.status(400).json({ error: "Senha inválida" });
+}
+
+// mínimo 4 caracteres 
+if (!senha || typeof senha !== "string") {
+  return res.status(400).json({ error: "Senha inválida" });
+}
+
+const senhaValida =
+  /^(?=(?:.*\d){2,})(?=.*[A-Za-z])(?=.*[^A-Za-z0-9]).{8,}$/.test(senha);
+
+if (!senhaValida) {
+  return res.status(400).json({
+    error:
+      "Senha deve ter pelo menos 8 caracteres, com 1 letra, 2 números e 1 caractere especial",
+  });
+}
+
 
   try {
     const hash = await bcrypt.hash(senha, 10);
 
-    // 👉 upsert: se o email já existir, ele NÃO dá erro, só retorna o usuário
+    // upsert: se o email já existir, ele NÃO dá erro, só retorna o usuário
     const user = await prisma.user.upsert({
       where: { email },
       update: {}, // não atualiza nada, só evita erro de duplicado
