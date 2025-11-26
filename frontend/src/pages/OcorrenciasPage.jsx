@@ -1,6 +1,6 @@
 // src/pages/OcorrenciasPage.jsx
 import React, { useEffect, useState } from "react";
-import { listarOcorrencias, criarOcorrencia } from "../services/api";
+import { listarOcorrencias, criarOcorrencia, deletarOcorrencia } from "../services/api";
 
 export default function OcorrenciasPage() {
   const [ocorrencias, setOcorrencias] = useState([]);
@@ -48,6 +48,23 @@ export default function OcorrenciasPage() {
     } catch (err) {
       console.error(err);
       setErro(err.response?.data?.error || "Erro ao criar ocorrência");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function handleExcluirOcorrencia(id) {
+    setCarregando(true);
+    setErro("");
+
+    try {
+      await deletarOcorrencia(id);
+
+      // Atualiza a lista sem precisar recarregar tudo
+      setOcorrencias(prev => prev.filter(oc => oc.id !== id));
+    } catch (err) {
+      console.error(err);
+      setErro(err.response?.data?.error || "Erro ao excluir ocorrência");
     } finally {
       setCarregando(false);
     }
@@ -149,17 +166,21 @@ export default function OcorrenciasPage() {
         {ocorrencias.length === 0 && !carregando && <p>Nenhuma ocorrência cadastrada.</p>}
 
         <ul style={{ listStyle: "none", padding: 0 }}>
-          {ocorrencias.map((oc) => (
-            <li
-              key={oc.id}
-              style={{
-                background: "#fff",
-                marginBottom: "0.75rem",
-                padding: "0.75rem",
-                borderRadius: "8px",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-              }}
-            >
+        {ocorrencias.map((oc) => (
+          <li
+            key={oc.id}
+            style={{
+              background: "#fff",
+              marginBottom: "0.75rem",
+              padding: "0.75rem",
+              borderRadius: "8px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
               <strong>{oc.tipo?.toUpperCase() || "OCORRÊNCIA"}</strong>
               <p style={{ margin: "0.25rem 0" }}>
                 <b>Local:</b> {oc.local}
@@ -168,9 +189,24 @@ export default function OcorrenciasPage() {
                 <b>Urgência:</b> {oc.urgencia}
               </p>
               <p style={{ margin: "0.25rem 0" }}>{oc.descricao}</p>
-            </li>
-          ))}
-        </ul>
+            </div>
+
+            <button
+              onClick={() => handleExcluirOcorrencia(oc.id)}
+              style={{
+                padding: "0.4rem 0.8rem",
+                borderRadius: "6px",
+                border: "none",
+                background: "#b3261e",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              Excluir
+            </button>
+          </li>
+        ))}
+      </ul>
       </section>
     </div>
   );
