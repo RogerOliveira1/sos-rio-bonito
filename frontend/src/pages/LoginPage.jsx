@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
-  const [role, setRole] = useState("user"); // "user" ou "admin"
+  const [role] = useState("user"); // só manda "user" pro backend
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -21,7 +21,6 @@ export default function LoginPage() {
 
     try {
       const res = await login(email, senha);
-      // backend devolve { token }
       localStorage.setItem("token", res.data.token);
       navigate("/ocorrencias");
     } catch (err) {
@@ -49,152 +48,102 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: "420px",
-        margin: "2rem auto",
-        padding: "2rem",
-        background: "#fff",
-        borderRadius: "12px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      }}
-    >
-      <div style={{ display: "flex", marginBottom: "1rem" }}>
+    <div className="page auth-page">
+      <h1 className="app-title">SOS Rio Bonito</h1>
+      <p className="app-subtitle">
+        Acesse o sistema para registrar ocorrências e vincular voluntários.
+      </p>
+
+      <div className="tabs">
         <button
+          type="button"
+          className={`tab ${aba === "login" ? "tab--active" : ""}`}
           onClick={() => setAba("login")}
-          style={{
-            flex: 1,
-            padding: "0.5rem",
-            border: "none",
-            borderBottom: aba === "login" ? "3px solid #0b4f6c" : "1px solid #ccc",
-            background: "transparent",
-            cursor: "pointer",
-            fontWeight: aba === "login" ? "bold" : "normal",
-          }}
         >
-          Login
+          Entrar
         </button>
         <button
+          type="button"
+          className={`tab ${aba === "register" ? "tab--active" : ""}`}
           onClick={() => setAba("register")}
-          style={{
-            flex: 1,
-            padding: "0.5rem",
-            border: "none",
-            borderBottom: aba === "register" ? "3px solid #0b4f6c" : "1px solid #ccc",
-            background: "transparent",
-            cursor: "pointer",
-            fontWeight: aba === "register" ? "bold" : "normal",
-          }}
         >
-          Registrar
+          Criar conta
         </button>
       </div>
 
-      {erro && (
-        <div style={{ marginBottom: "1rem", color: "red", fontSize: "0.9rem" }}>
-          {erro}
-        </div>
-      )}
+      {erro && <div className="alert">{erro}</div>}
 
       {aba === "login" ? (
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Email</label>
+        <form className="form" onSubmit={handleLogin}>
+          <div className="form-group">
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
             />
           </div>
 
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Senha</label>
+          <div className="form-group">
+            <label htmlFor="login-senha">Senha</label>
             <input
+              id="login-senha"
               type="password"
               value={senha}
               onChange={e => setSenha(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
             />
           </div>
 
           <button
             type="submit"
             disabled={carregando}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: "#0b4f6c",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
+            className="btn btn-primary btn-full"
           >
             {carregando ? "Entrando..." : "Entrar"}
           </button>
         </form>
       ) : (
-        <form onSubmit={handleRegister}>
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Nome</label>
+        <form className="form" onSubmit={handleRegister}>
+          <div className="form-group">
+            <label htmlFor="reg-nome">Nome completo</label>
             <input
+              id="reg-nome"
               type="text"
               value={nome}
               onChange={e => setNome(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
             />
           </div>
 
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Email</label>
+          <div className="form-group">
+            <label htmlFor="reg-email">Email</label>
             <input
+              id="reg-email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
             />
           </div>
 
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Senha</label>
+          <div className="form-group">
+            <label htmlFor="reg-senha">Senha</label>
             <input
+              id="reg-senha"
               type="password"
               value={senha}
               onChange={e => setSenha(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
             />
-          </div>
-
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label>Tipo de usuário</label>
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-            >
-              <option value="user">Usuário comum</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           <button
             type="submit"
             disabled={carregando}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: "#0b4f6c",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
+            className="btn btn-primary btn-full"
           >
             {carregando ? "Cadastrando..." : "Cadastrar"}
           </button>

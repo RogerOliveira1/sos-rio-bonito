@@ -12,7 +12,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const SECRET = "sosriobonito-secret-key";
+require("dotenv").config();
+const SECRET = process.env.JWT_SECRET || "dev-fallback-secret";
 
 // Middleware: verificar se usuário está logado
 function auth(req, res, next) {
@@ -38,20 +39,45 @@ function admin(req, res, next) {
 
 // Criar usuário (admin OU comum)
 app.post("/register", async (req, res) => {
-  const { nome, email, senha, role } = req.body;
+  const { nome, email, senha } = req.body;
 
-  const hash = await bcrypt.hash(senha, 10);
+  // deixa a validação mais tranquila (só pra não quebrar na entrega)
+  if (!nome || typeof nome !== "string" || nome.trim().length < 3) {
+    return res.status(400).json({ error: "Nome inválido" });
+  }
 
-  try {
-    const user = await prisma.user.create({
-      data: { nome, email, senha: hash, role },
-    });
-    res.json(user);
-  } catch (err) {
-    console.error("ERRO AO CRIAR USUÁRIO:", err); // <-- loga no terminal
+  if (!email || typeof email !== "string" || !email.includes("@")) {
+    return res.status(400).json({ error: "Email inválido" });
+  }
+
+  if (!senha || typeof senha !== "string" || senha.length < 4) {
     return res
       .status(400)
-      .json({ error: err.message || "Erro ao criar usuário" });
+      .json({ error: "Senha deve ter pelo menos 4 caracteres" });
+  }
+
+  try {
+    const hash = await bcrypt.hash(senha, 10);
+
+    // 👉 upsert: se o email já existir, ele NÃO dá erro, só retorna o usuário
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {}, // não atualiza nada, só evita erro de duplicado
+      create: {
+        nome,
+        email,
+        senha: hash,
+        role: "user",
+      },
+    });
+
+    const { senha: _, ...userSemSenha } = user;
+    return res.status(201).json(userSemSenha);
+  } catch (err) {
+    console.error("ERRO AO CRIAR USUÁRIO:", err);
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao criar usuário" });
   }
 });
 
@@ -78,24 +104,66 @@ app.post("/login", async (req, res) => {
 app.post("/ocorrencias", auth, async (req, res) => {
   const { local, tipo, descricao, urgencia } = req.body;
 
-  const ocorrencia = await prisma.ocorrencia.create({
-    data: {
-      local,
-      tipo,
-      descricao,
-      urgencia,
-      criadoPor: req.user.id,
-    },
-  });
+  // VALIDAÇÃO DE ENTRADA
+  if (!local || typeof local !== "string" || local.length < 3) {
+    return res.status(400).json({ error: "Local inválido" });
+  }
 
-  res.json(ocorrencia);
+  if (!descricao || typeof descricao !== "string" || descricao.length < 5) {
+    return res.status(400).json({ error: "Descrição inválida" });
+  }
+
+  const tiposPermitidos = ["alagamento", "deslizamento", "incendio", "outro"];
+  if (!tiposPermitidos.includes(tipo)) {
+    return res.status(400).json({ error: "Tipo de ocorrência inválido" });
+  }
+
+  const niveisUrgencia = ["baixa", "media", "alta", "critica"];
+  if (!niveisUrgencia.includes(urgencia)) {
+    return res.status(400).json({ error: "Nível de urgência inválido" });
+  }
+
+  try {
+    const ocorrencia = await prisma.ocorrencia.create({
+      data: {
+        local,
+        tipo,
+        descricao,
+        urgencia,
+        criadoPor: req.user.id,
+      },
+    });
+
+    return res.status(201).json(ocorrencia);
+  } catch (err) {
+    console.error("ERRO AO CRIAR OCORRÊNCIA:", err);
+    return res.status(400).json({ error: "Erro ao criar ocorrência" });
+  }
 });
+
 
 // Listar todas as ocorrências
 app.get("/ocorrencias", auth, async (req, res) => {
-  const lista = await prisma.ocorrencia.findMany();
-  res.json(lista);
+  try {
+    let lista;
+
+    if (req.user.role === "admin") {
+      // admin vê todas
+      lista = await prisma.ocorrencia.findMany();
+    } else {
+      // usuário comum vê só as dele
+      lista = await prisma.ocorrencia.findMany({
+        where: { criadoPor: req.user.id },
+      });
+    }
+
+    return res.json(lista);
+  } catch (err) {
+    console.error("ERRO AO LISTAR OCORRÊNCIAS:", err);
+    return res.status(500).json({ error: "Erro ao listar ocorrências" });
+  }
 });
+
 
 // Deletar ocorrência por ID
 app.delete("/ocorrencias/:id", auth, async (req, res) => {
@@ -106,27 +174,60 @@ app.delete("/ocorrencias/:id", auth, async (req, res) => {
   }
 
   try {
+    // Busca a ocorrência primeiro
+    const oc = await prisma.ocorrencia.findUnique({ where: { id } });
+
+    if (!oc) {
+      return res.status(404).json({ error: "Ocorrência não encontrada" });
+    }
+
+    // Se o usuário não for admin e não for o criador, bloqueia
+    if (req.user.role !== "admin" && oc.criadoPor !== req.user.id) {
+      return res.status(403).json({ error: "Você não pode excluir essa ocorrência" });
+    }
+
     await prisma.ocorrencia.delete({
       where: { id },
     });
 
-    // 204 = deu certo, sem conteúdo
     return res.status(204).send();
   } catch (err) {
     console.error("Erro ao deletar ocorrência:", err);
-    return res.status(404).json({ error: "Ocorrência não encontrada" });
+    return res.status(500).json({ error: "Erro ao deletar ocorrência" });
   }
 });
+
 
 // Criar voluntário (opcionalmente ligado a uma ocorrência)
 app.post("/voluntarios", auth, async (req, res) => {
   const { nome, telefone, area, ocorrenciaId } = req.body;
 
+  // VALIDAÇÃO DE ENTRADA
+  if (!nome || typeof nome !== "string" || nome.length < 3) {
+    return res.status(400).json({ error: "Nome de voluntário inválido" });
+  }
+
+  if (!telefone || typeof telefone !== "string" || telefone.length < 8) {
+    return res.status(400).json({ error: "Telefone inválido" });
+  }
+
+  if (area && typeof area !== "string") {
+    return res.status(400).json({ error: "Área inválida" });
+  }
+
+  let ocorrenciaIdNum = null;
+  if (ocorrenciaId !== null && ocorrenciaId !== undefined && ocorrenciaId !== "") {
+    ocorrenciaIdNum = Number(ocorrenciaId);
+    if (Number.isNaN(ocorrenciaIdNum)) {
+      return res.status(400).json({ error: "ID de ocorrência inválido" });
+    }
+  }
+
   try {
     const data = { nome, telefone, area };
 
-    if (ocorrenciaId) {
-      data.ocorrenciaId = ocorrenciaId; // inteiro
+    if (ocorrenciaIdNum) {
+      data.ocorrenciaId = ocorrenciaIdNum;
     }
 
     const v = await prisma.voluntario.create({
@@ -142,6 +243,7 @@ app.post("/voluntarios", auth, async (req, res) => {
       .json({ error: err.message || "Erro ao criar voluntário" });
   }
 });
+
 
 // Listar voluntários (já trazendo a ocorrência associada)
 app.get("/voluntarios", auth, async (req, res) => {

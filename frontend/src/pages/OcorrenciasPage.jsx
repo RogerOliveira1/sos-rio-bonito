@@ -71,7 +71,7 @@ export default function OcorrenciasPage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div className="page">
       <h2>Ocorrências</h2>
 
       {erro && (

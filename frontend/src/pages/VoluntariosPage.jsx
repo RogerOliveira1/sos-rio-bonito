@@ -72,7 +72,7 @@ export default function VoluntariosPage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div className="page">
       <h2>Voluntários</h2>
 
       {erro && (

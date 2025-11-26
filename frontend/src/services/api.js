@@ -5,14 +5,30 @@ const api = axios.create({
   baseURL: "http://localhost:3000",
 });
 
-// coloca o token em todas as requisições
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// ⬇⬇⬇ ADICIONE ISSO AQUI ⬇⬇⬇
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+// ⬆⬆⬆ ADICIONE ISSO AQUI ⬆⬆⬆
+
+// Já tinha antes: trata respostas 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/"; // manda pro login
+    }
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 // ------- autenticação -------
 export const login = (email, senha) =>
@@ -36,5 +52,4 @@ export const listarVoluntarios = () => api.get("/voluntarios");
 export const criarVoluntario = (dados) =>
   api.post("/voluntarios", dados);
 
-// (voluntários/admin você usa depois)
 export default api;
