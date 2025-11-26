@@ -1,8 +1,9 @@
 // src/app.jsx
-import React from "react";                // <= IMPORTANTE
+import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.jsx";
 import OcorrenciasPage from "./pages/OcorrenciasPage.jsx";
+import VoluntariosPage from "./pages/VoluntariosPage.jsx";
 
 export default function App() {
   return (
@@ -14,6 +15,9 @@ export default function App() {
           <Link to="/ocorrencias" style={{ color: "#fff", textDecoration: "none" }}>
             Ocorrências
           </Link>
+          <Link to="/voluntarios" style={{ color: "#fff", textDecoration: "none" }}>
+            Voluntários
+          </Link>
         </nav>
       </header>
 
@@ -21,6 +25,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/ocorrencias" element={<OcorrenciasPage />} />
+          <Route path="/voluntarios" element={<VoluntariosPage />} />
         </Routes>
       </main>
     </div>

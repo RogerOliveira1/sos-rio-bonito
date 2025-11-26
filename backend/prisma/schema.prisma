@@ -8,25 +8,30 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  nome     String
-  email    String  @unique
-  senha    String
-  role     String  // "usuario" ou "admin"
+  id     Int    @id @default(autoincrement())
+  nome   String
+  email  String @unique
+  senha  String
+  role   String @default("user")
 }
 
 model Ocorrencia {
-  id        Int     @id @default(autoincrement())
-  local     String
-  tipo      String
-  descricao String?
-  urgencia  String
-  criadoPor Int      // só guarda o id do usuário que criou
+  id          Int          @id @default(autoincrement())
+  local       String
+  tipo        String
+  descricao   String
+  urgencia    String
+  criadoPor   Int
+
+  voluntarios Voluntario[]   // 1:N
 }
 
 model Voluntario {
-  id       Int     @id @default(autoincrement())
-  nome     String
-  telefone String
-  area     String
+  id           Int         @id @default(autoincrement())
+  nome         String
+  telefone     String
+  area         String
+
+  ocorrenciaId Int ?
+  ocorrencia   Ocorrencia ? @relation(fields: [ocorrenciaId], references: [id])
 }

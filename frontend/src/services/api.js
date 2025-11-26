@@ -30,5 +30,11 @@ export const criarOcorrencia = (dados) =>
 export const deletarOcorrencia = (id) =>
   api.delete(`/ocorrencias/${id}`);
 
+// ------- voluntários -------
+export const listarVoluntarios = () => api.get("/voluntarios");
+
+export const criarVoluntario = (dados) =>
+  api.post("/voluntarios", dados);
+
 // (voluntários/admin você usa depois)
 export default api;

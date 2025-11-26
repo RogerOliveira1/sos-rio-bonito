@@ -97,41 +97,46 @@ app.get("/ocorrencias", auth, async (req, res) => {
   res.json(lista);
 });
 
-// Deletar ocorrência por ID
-app.delete("/ocorrencias/:id", auth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" });
-  }
+// Criar voluntário (opcionalmente ligado a uma ocorrência)
+app.post("/voluntarios", auth, async (req, res) => {
+  const { nome, telefone, area, ocorrenciaId } = req.body;
 
   try {
-    await prisma.ocorrencia.delete({
-      where: { id },
+    const data = { nome, telefone, area };
+
+    if (ocorrenciaId) {
+      data.ocorrenciaId = ocorrenciaId; // inteiro
+    }
+
+    const v = await prisma.voluntario.create({
+      data,
+      include: { ocorrencia: true },
     });
 
-    // 204 = deu certo, sem conteúdo
-    return res.status(204).send();
+    return res.status(201).json(v);
   } catch (err) {
-    console.error("Erro ao deletar ocorrência:", err);
-    return res.status(404).json({ error: "Ocorrência não encontrada" });
+    console.error("ERRO AO CRIAR VOLUNTÁRIO:", err);
+    return res
+      .status(400)
+      .json({ error: err.message || "Erro ao criar voluntário" });
   }
 });
 
-// Criar voluntário
-app.post("/voluntarios", auth, async (req, res) => {
-  const { nome, telefone, area } = req.body;
-  const v = await prisma.voluntario.create({
-    data: { nome, telefone, area },
-  });
-  res.json(v);
+// Listar voluntários (já trazendo a ocorrência associada)
+app.get("/voluntarios", auth, async (req, res) => {
+  try {
+    const lista = await prisma.voluntario.findMany({
+      include: { ocorrencia: true },
+    });
+    return res.json(lista);
+  } catch (err) {
+    console.error("ERRO AO LISTAR VOLUNTÁRIOS:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Erro ao listar voluntários" });
+  }
 });
 
-// Listar voluntários
-app.get("/voluntarios", auth, async (req, res) => {
-  const lista = await prisma.voluntario.findMany();
-  res.json(lista);
-});
 
 // Painel admin
 app.get("/admin/ocorrencias", auth, admin, async (req, res) => {
