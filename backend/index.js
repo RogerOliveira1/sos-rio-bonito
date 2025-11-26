@@ -97,6 +97,27 @@ app.get("/ocorrencias", auth, async (req, res) => {
   res.json(lista);
 });
 
+// Deletar ocorrência por ID
+app.delete("/ocorrencias/:id", auth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID inválido" });
+  }
+
+  try {
+    await prisma.ocorrencia.delete({
+      where: { id },
+    });
+
+    // 204 = deu certo, sem conteúdo
+    return res.status(204).send();
+  } catch (err) {
+    console.error("Erro ao deletar ocorrência:", err);
+    return res.status(404).json({ error: "Ocorrência não encontrada" });
+  }
+});
+
 // Criar voluntário (opcionalmente ligado a uma ocorrência)
 app.post("/voluntarios", auth, async (req, res) => {
   const { nome, telefone, area, ocorrenciaId } = req.body;
